@@ -153,6 +153,54 @@ app.put('/usuarios/:id/roles', verifyToken, async (req, res) => {
   }
 });
 
+// Ruta para suspender un usuario
+// Ruta para suspender un usuario
+app.put('/suspendUser', verifyToken, async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    const token = req.headers.authorization.split(' ')[1]; // Obtener el token del encabezado Authorization
+
+    const response = await axios.put('http://localhost:6004/suspendUser', {
+      userId
+    }, {
+      headers: {
+        Authorization: req.headers.authorization
+      }
+    });
+
+    const { message, suspendedUser } = response.data;
+    res.json({ message, suspendedUser });
+  } catch (error) {
+    console.error('Error al hacer la solicitud al microservicio:', error.message);
+    res.status(500).json({ error: 'Error al suspender el usuario' });
+  }
+});
+
+
+
+
+// Ruta para levantar la suspensión de un usuario
+app.put('/unsuspendUser', verifyToken, async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    const response = await axios.put('http://localhost:6004/unsuspendUser', {  // Cambiado a axios.put y la URL corregida
+      userId
+    }, {
+      headers: {
+        Authorization: req.headers.authorization // Pasar el token en la cabecera
+      }
+    });
+
+    const { message, unsuspendedUser } = response.data;
+    res.json({ message, unsuspendedUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al levantar la suspensión del usuario' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });

@@ -1,7 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
-const axios = require('axios');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
@@ -18,7 +18,6 @@ app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Middleware para verificar el token JWT
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -43,13 +42,22 @@ const verifyToken = (req, res, next) => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS roles (
         id SERIAL PRIMARY KEY,
-        nombre VARCHAR(50) UNIQUE NOT NULL,
-        regular BOOLEAN NOT NULL
+        nombre VARCHAR(50) UNIQUE NOT NULL
       )
     `);
-    // Verificar si el rol ya existe antes de insertarlo
-    await client.query(`INSERT INTO roles (nombre, regular) VALUES ('Admin', false) ON CONFLICT (nombre) DO NOTHING`);
-    await client.query(`INSERT INTO roles (nombre, regular) VALUES ('Regular', true) ON CONFLICT (nombre) DO NOTHING`);
+
+    await client.query(`INSERT INTO roles (nombre) VALUES ('Admin') ON CONFLICT (nombre) DO NOTHING`);
+    await client.query(`INSERT INTO roles (nombre) VALUES ('Encargado') ON CONFLICT (nombre) DO NOTHING`);
+    await client.query(`INSERT INTO roles (nombre) VALUES ('Regular') ON CONFLICT (nombre) DO NOTHING`);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS usuarios_roles (
+        usuario_id INT,
+        rol_id INT,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+        FOREIGN KEY (rol_id) REFERENCES roles(id)
+      )
+    `);
   } catch (err) {
     console.error('Error creando las tablas', err);
   } finally {
@@ -57,7 +65,7 @@ const verifyToken = (req, res, next) => {
   }
 })();
 
-// Obtener todos los roles
+//Ver roles 
 app.get('/roles', async (req, res) => {
   try {
     const client = await pool.connect();
@@ -71,8 +79,7 @@ app.get('/roles', async (req, res) => {
   }
 });
 
-// Ruta para asignar roles a los usuarios
-// Ruta para asignar roles a los usuarios
+//Asignacion de roles
 app.put('/usuarios/:id/roles', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -83,13 +90,9 @@ app.put('/usuarios/:id/roles', verifyToken, async (req, res) => {
     }
 
     const client = await pool.connect();
-    await client.query('DELETE FROM usuarios_roles WHERE usuario_id = $1', [id]);
 
-    const insertPromises = roles.map(async (role) => {
-      await client.query('INSERT INTO usuarios_roles (usuario_id, rol) VALUES ($1, $2)', [id, role]);
-    });
-
-    await Promise.all(insertPromises);
+   
+    await client.query('UPDATE usuarios SET role_id = $1 WHERE id = $2', [roles[0], id]); //Actualiza la tabla usuario columna de roles_id
 
     client.release();
 
@@ -99,6 +102,7 @@ app.put('/usuarios/:id/roles', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Error al asignar roles al usuario' });
   }
 });
+
 
 app.listen(PORT4, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT4}`);
