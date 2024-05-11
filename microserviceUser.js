@@ -63,6 +63,7 @@ const verifyToken = (req, res, next) => {
 };
 
 const generateToken = (user) => {
+  
   return jwt.sign(user, JWT_SECRET, { expiresIn: '1h' });
 };
 
@@ -84,7 +85,7 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
 
-    const token = generateToken({ username: user.username }); 
+    const token = generateToken({ username: user.username,role: user.role_id }); 
 
     res.json({ token }); 
   } catch (error) {
