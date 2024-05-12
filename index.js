@@ -93,6 +93,7 @@ app.get('/registros', verifyToken, async (req, res) => {
   }
 });
 
+//Ruta para crear nuevos usuarios
 app.put('/usuarios', verifyToken, async (req, res) => {
   try {
     const { username, password, nombre, apellido } = req.body;
@@ -109,11 +110,16 @@ app.put('/usuarios', verifyToken, async (req, res) => {
     const usuarios = response.data;
     res.json({ usuarios });
   } catch (error) {
-    console.error(error);
+    console.error(error.response);
+    if (error.response.status == 403) {
+      res.status(403).json(error.response.data);
+    }
+    console.error('Error al hacer la solicitud al microservicio:', error.message);
     res.status(500).json({ error: 'Error al enviar los datos al microservicio de usuarios' });
   }
 });
 
+// Ruta para ver los usuarios guardados
 app.get('/usuarios', verifyToken, async (req, res) => {
   try {
     const response = await axios.get('http://localhost:6002/usuariosguardados', {
@@ -124,7 +130,11 @@ app.get('/usuarios', verifyToken, async (req, res) => {
     const usuarios = response.data;
     res.json({ usuarios });
   } catch (error) {
-    console.error(error);
+    console.error(error.response);
+    if (error.response.status == 403) {
+      res.status(403).json(error.response.data);
+    }
+    console.error('Error al hacer la solicitud al microservicio:', error.message);
     res.status(500).json({ error: 'Error al obtener los usuarios' });
   }
 });
@@ -148,19 +158,22 @@ app.put('/usuarios/:id/roles', verifyToken, async (req, res) => {
     const usuarios = response.data;
     res.json({ usuarios });
   } catch (error) {
-    console.error(error);
+    console.error(error.response);
+    if (error.response.status == 403) {
+      res.status(403).json(error.response.data);
+    }
+    console.error('Error al hacer la solicitud al microservicio:', error.message);
     res.status(500).json({ error: 'Error al asignar roles al usuario' });
   }
 });
 
-// Ruta para suspender un usuario
 // Ruta para suspender un usuario
 app.put('/suspendUser', verifyToken, async (req, res) => {
   const { userId } = req.body;
 
   try {
     //const token = req.headers.authorization.split(' ')[1]; // Obtener el token del encabezado Authorization
-console.log(req.headers.authorization)
+    console.log(req.headers.authorization)
     const response = await axios.put('http://localhost:6004/suspendUser', {
       userId
     }, {
@@ -173,16 +186,13 @@ console.log(req.headers.authorization)
     res.json({ message, suspendedUser });
   } catch (error) {
     console.log(error.response)
-    if (error.response.status == 403){
+    if (error.response.status == 403) {
       res.status(403).json(error.response.data);
     }
     console.error('Error al hacer la solicitud al microservicio:', error.message);
     res.status(500).json({ error: 'Error al suspensión del usuario' });
   }
 });
-
-
-
 
 // Ruta para levantar la suspensión de un usuario
 app.put('/unsuspendUser', verifyToken, async (req, res) => {

@@ -18,6 +18,7 @@ app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+//Middleware para verificar el token JWT
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -27,12 +28,30 @@ const verifyToken = (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, JWT_SECRET, async (err, decoded) => {
     if (err) {
       return res.status(401).json({ error: 'Token inválido' });
     }
-    req.user = decoded;
-    next();
+    //Permiso para el admin
+    const client = await pool.connect();
+    try {
+
+      console.log(decoded)
+
+      if (decoded.role != 1) { // Verifica si el rol es 1, corresponde al admin
+
+        return res.status(403).json({ error: 'Acceso denegado. Se requiere el rol de Admin' });
+      }
+
+      req.user = decoded;
+
+      next();
+    } catch (error) {
+      console.error('Error al verificar el rol del usuario:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    } finally {
+      client.release();
+    }
   });
 };
 
